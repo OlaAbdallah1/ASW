@@ -3,6 +3,7 @@ const mysql = require('mysql');
 const jwt = require('jsonwebtoken');
 const bcrypt = require ('bcryptjs');
 const request = require('request');
+const flash = require('connect-flash');
 const router = require('../routes/auth.route');
 const db=mysql.createConnection({
    host:'localhost',
@@ -15,29 +16,26 @@ const db=mysql.createConnection({
 exports.getSignup=(request,res,next)=>{
     res.render("signup");
 }
-exports.postSignup =  (request, response, next)=>{
+exports.postSignup =  (req, res, next)=>{
     // response.render('login');
-    console.log(request.body);
+    console.log(req.body);
  
-    const {name, email, pass, re_pass} = request.body;
+    const {name, email, pass, re_pass} = req.body;
     db.query('SELECT email FROM usertable WHERE email = ?', [email], async (error, result)=>{
         if(error){
             console.log(error);
         }
         if (result.length > 0){ //the email exist breviosly in our db
-            return response.render('signup',{
-                message:'That email is already in use'
-
+                return res.render('signup',{
+                message: 'That email is already in use'
             });
-       
-            // response.send('The Email is already in use!');
 
+       
         }
         else if(pass !== re_pass){
-            // response.send('The passwords do not match!');
-            return response.render('signup',{
-                message:'The passwords do not match'
-            });
+                return res.render('signup',{
+                    message: 'The passwords do not match'
+                });
         }
 
         let hashedPassword = await bcrypt.hash(pass,8);
@@ -50,11 +48,11 @@ exports.postSignup =  (request, response, next)=>{
                 // response.render('/signup');
             }else {
                 console.log(result);
-                 response.redirect('/login');
+                 res.redirect('/login');
             }
             
            
-            response.end();
+            res.end();
 
         });
     }); // the value
@@ -69,33 +67,30 @@ exports.postLogin = async function(req,res){
     var password = req.body.pass;
     db.query('SELECT * FROM usertable WHERE email = ?',[email], async function (error, results, fields) {
       if (error) {
-        res.send({
-          "code":400,
-          "failed":"error ocurred"
+        return res.render('login',{
+            message: 'error ocurred'
         });
+        
       }else{
         if(results.length >0){
           const comparision = await bcrypt.compare(password, results[0].password)
           if(comparision){
-              res.send({
-                "code":200,
-                "message":"login sucessfull"
-              })
-              //Redirect to home page
+            return res.render('movies',{//Redirect to home page
+                message: 'Logged in succesfully'
+            });
+              
           }
           else{
-            res.send({
-                 "code":204,
-                 "message":"Email and password does not match"
-            })
+            return res.render('login',{
+                message: 'Email and Password do not match'
+            });
             
           }
         }
         else{
-          res.send({
-            "code":206,
-            "message":"Email does not exits"
-              });
+            return res.render('login',{
+                message: 'Email does not exist'
+            });
         }
       }
       });
